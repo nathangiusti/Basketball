@@ -127,6 +127,91 @@ def load_or_fetch_all_series(start=START_YEAR, end=END_YEAR):
 # State probability computation
 # ---------------------------------------------------------------------------
 
+_TEAM_ABBR = {
+    # Modern franchises
+    "Atlanta Hawks": "ATL",
+    "Boston Celtics": "BOS",
+    "Brooklyn Nets": "BKN",
+    "Charlotte Bobcats": "CHA",
+    "Charlotte Hornets": "CHH",
+    "Chicago Bulls": "CHI",
+    "Cleveland Cavaliers": "CLE",
+    "Dallas Mavericks": "DAL",
+    "Denver Nuggets": "DEN",
+    "Detroit Pistons": "DET",
+    "Golden State Warriors": "GSW",
+    "Houston Rockets": "HOU",
+    "Indiana Pacers": "IND",
+    "Los Angeles Clippers": "LAC",
+    "Los Angeles Lakers": "LAL",
+    "Memphis Grizzlies": "MEM",
+    "Miami Heat": "MIA",
+    "Milwaukee Bucks": "MIL",
+    "Minnesota Timberwolves": "MIN",
+    "New Jersey Nets": "NJN",
+    "New Orleans Hornets": "NOH",
+    "New Orleans Pelicans": "NOP",
+    "New Orleans/Oklahoma City Hornets": "NOK",
+    "New York Knicks": "NYK",
+    "New York Knickerbockers": "NYK",
+    "Oklahoma City Thunder": "OKC",
+    "Orlando Magic": "ORL",
+    "Philadelphia 76ers": "PHI",
+    "Phoenix Suns": "PHX",
+    "Portland Trail Blazers": "POR",
+    "Sacramento Kings": "SAC",
+    "San Antonio Spurs": "SAS",
+    "Seattle SuperSonics": "SEA",
+    "Toronto Raptors": "TOR",
+    "Utah Jazz": "UTA",
+    "Vancouver Grizzlies": "VAN",
+    "Washington Bullets": "WSB",
+    "Washington Capitols": "WSC",
+    "Washington Wizards": "WAS",
+    # Relocated / historical franchises
+    "Anderson Packers": "AND",
+    "Baltimore Bullets": "BAL",
+    "Buffalo Braves": "BUF",
+    "Capital Bullets": "CAP",
+    "Chicago Packers": "CHP",
+    "Chicago Stags": "STG",
+    "Chicago Zephyrs": "CHZ",
+    "Cincinnati Royals": "CIN",
+    "Cleveland Rebels": "CRB",
+    "Denver Rockets": "DNR",
+    "Detroit Falcons": "DTF",
+    "Fort Wayne Pistons": "FTW",
+    "Indianapolis Jets": "INJ",
+    "Indianapolis Olympians": "INO",
+    "Kansas City Kings": "KCK",
+    "Kansas City-Omaha Kings": "KCO",
+    "Memphis Pros": "MEM",
+    "Milwaukee Hawks": "MLW",
+    "Minneapolis Lakers": "MNL",
+    "New Orleans Jazz": "NOJ",
+    "New York Nets": "NYN",
+    "Philadelphia Warriors": "PHW",
+    "Pittsburgh Ironmen": "PIT",
+    "Providence Steamrollers": "PRO",
+    "Rochester Royals": "ROC",
+    "San Diego Clippers": "SDC",
+    "San Diego Rockets": "SDR",
+    "San Francisco Warriors": "SFW",
+    "Sheboygan Redskins": "SHE",
+    "St. Louis Bombers": "STB",
+    "St. Louis Hawks": "STL",
+    "Syracuse Nationals": "SYR",
+    "Toronto Huskies": "TRH",
+    "Tri-Cities Blackhawks": "TCB",
+    "Waterloo Hawks": "WAT",
+}
+
+
+def _abbr(name: str) -> str:
+    """Return the 3-letter team abbreviation, or the original string if already short / unknown."""
+    return _TEAM_ABBR.get(name, name)
+
+
 def _round_abbr(series_id):
     """
     Returns round abbreviation from a series_id string.
@@ -146,28 +231,32 @@ def _round_abbr(series_id):
 
 def build_state_records(all_series):
     """
-    Returns:
-      records  – dict: (a_wins, b_wins) -> [led_team_won_count, total_count]
-      recency  – dict: (a_wins, b_wins) -> {'leader': (season, winner, loser, round),
-                                             'trailer': (season, winner, loser, round)}
-                 Most-recent series in which the leader / trailer won from that state.
+    Returns six dicts, all tracking outcomes from the higher seed's perspective.
 
-    Non-tied states (a > b): a = leader wins, b = trailer wins.
-    Tied states (a == b):    tracked from team_a perspective (home team in game 1).
+    records_hi/lo/tied: {state: [higher_seed_won, total]}
+      hi   — higher seed (team_a) leads; state key = (hi_wins, lo_wins)
+      lo   — lower seed  (team_b) leads; state key = (lo_wins, hi_wins)
+      tied — equal wins;                 state key = (wins, wins)
 
-    For each game in each series, the state *before* that game is recorded.
+    recency_hi/lo/tied: {state: {'higher': last_entry, 'lower': last_entry}}
+      last_entry = (season, winner_team, loser_team, round_abbr)
+
+    team_a is the home team in game 1, treated as the higher seed.
     """
-    records = defaultdict(lambda: [0, 0])
-    recency  = {}          # state -> {'leader': (...), 'trailer': (...)}
+    records_hi   = defaultdict(lambda: [0, 0])
+    records_lo   = defaultdict(lambda: [0, 0])
+    records_tied = defaultdict(lambda: [0, 0])
+    recency_hi   = {}
+    recency_lo   = {}
+    recency_tied = {}
 
-    # Sort by season ascending so later entries overwrite earlier ones (keeping most recent)
     for series in sorted(all_series, key=lambda s: s["season"]):
-        games      = series["games"]
-        team_a     = series["team_a"]
-        team_b     = series["team_b"]
-        team_a_won = series["team_a_won"]
-        season     = series["season"]
-        series_id  = series["series_id"]
+        games        = series["games"]
+        team_a       = series["team_a"]
+        team_b       = series["team_b"]
+        team_a_won   = series["team_a_won"]
+        season       = series["season"]
+        series_id    = series["series_id"]
         winner_team  = series["series_winner"]
         loser_team   = team_b if team_a_won else team_a
         rnd          = _round_abbr(series_id)
@@ -179,82 +268,41 @@ def build_state_records(all_series):
             a, b = ta_wins, tb_wins
 
             if a > b:
-                state      = (a, b)
-                leader_won = team_a_won
+                state   = (a, b)
+                recs    = records_hi
+                rec_map = recency_hi
             elif b > a:
-                state      = (b, a)
-                leader_won = not team_a_won
+                state   = (b, a)
+                recs    = records_lo
+                rec_map = recency_lo
             else:
-                state      = (a, b)
-                leader_won = team_a_won
+                state   = (a, b)
+                recs    = records_tied
+                rec_map = recency_tied
 
-            records[state][1] += 1
-            if leader_won:
-                records[state][0] += 1
+            recs[state][1] += 1
+            if team_a_won:
+                recs[state][0] += 1
 
-            # Track most-recent series where leader/trailer won from this state
-            rec = recency.setdefault(state, {"leader": None, "trailer": None})
+            rec = rec_map.setdefault(state, {"higher": None, "lower": None})
             entry = (season, winner_team, loser_team, rnd)
-            if leader_won:
-                rec["leader"] = entry
+            if team_a_won:
+                rec["higher"] = entry
             else:
-                rec["trailer"] = entry
+                rec["lower"] = entry
 
             if game["winner"] == team_a:
                 ta_wins += 1
             else:
                 tb_wins += 1
 
-    return records, recency
+    return records_hi, records_lo, records_tied, recency_hi, recency_lo, recency_tied
 
 
-def _pct(state, records):
+def _pct_from(state, records):
+    """Higher seed win% from the given records dict."""
     won, total = records.get(state, [0, 0])
     return (won / total * 100) if total > 0 else None
-
-
-def _display_pct(a, b, records):
-    """
-    Win% to show in the table for the 'leader' column.
-
-    Tied states use 50% — by symmetry neither team has an inherent advantage
-    from the series state alone. Non-tied states use the historical leader win%.
-    """
-    if a == b:
-        return 50.0
-    return _pct((a, b), records)
-
-
-def _pct_after_leader_wins(a, b, records):
-    """Win% for the current leader after they win (state: a+1, b)."""
-    if a + 1 == 4:
-        return 100.0
-    # a+1 > b always, so the new state is never tied — use historical leader win%
-    return _pct((a + 1, b), records)
-
-
-def _pct_after_trailer_wins(a, b, records):
-    """
-    Win% for the *current leader* after the trailer wins (state: a vs b+1).
-
-    Cases:
-      b+1 == 4   → series over, leader loses → 0%
-      b+1 >  a   → only when a==b (tied); trailer becomes new leader
-      b+1 == a   → newly tied → 50% by symmetry
-      b+1 <  a   → leader still leads (by less)
-    """
-    b1 = b + 1
-    if b1 == 4:
-        return 0.0
-    if b1 > a:
-        # Only reachable from a tied state (a==b); trailer with b1 wins now leads
-        pct = _pct((b1, a), records)
-        return (100.0 - pct) if pct is not None else None
-    if b1 == a:
-        # Series reaches a tied state — 50% for either team by symmetry
-        return 50.0
-    # Leader still ahead
-    return _pct((a, b1), records)
 
 
 # ---------------------------------------------------------------------------
@@ -274,11 +322,38 @@ ALL_STATES = [
     (3, 3),
 ]
 
+# Two rows per non-tied state: higher seed leading, then lower seed leading.
+# (kind, a, b):
+#   'tied' → tied a-a            (records_tied key: (a, a))
+#   'hi'   → higher seed leads   (records_hi   key: (a, b), score hi-lo)
+#   'lo'   → lower seed leads    (records_lo   key: (a, b) where a=lo_wins, b=hi_wins)
+EXPANDED_STATES = [
+    ('tied', 0, 0),
+    ('hi',   1, 0),
+    ('lo',   1, 0),
+    ('tied', 1, 1),
+    ('hi',   2, 0),
+    ('lo',   2, 0),
+    ('hi',   2, 1),
+    ('lo',   2, 1),
+    ('tied', 2, 2),
+    ('hi',   3, 0),
+    ('lo',   3, 0),
+    ('hi',   3, 1),
+    ('lo',   3, 1),
+    ('hi',   3, 2),
+    ('lo',   3, 2),
+    ('tied', 3, 3),
+]
 
-def _label(a, b):
-    if a == b:
-        return "0-0 (Start)" if a == 0 else f"Tied  {a}-{b}"
-    return f"Leads {a}-{b}"
+
+def _state_label(kind, a, b):
+    if kind == 'tied':
+        return "0-0 (Start)" if a == 0 else f"Tied  {a}-{a}"
+    if kind == 'hi':
+        return f"Higher seed leads {a}-{b}"
+    # 'lo': lower seed has 'a' wins, higher seed has 'b'; score from hi perspective is b-a
+    return f"Lower seed leads {b}-{a}"
 
 
 def _fmt(v, *, sign=False):
@@ -289,6 +364,14 @@ def _fmt(v, *, sign=False):
     return f"{v:.1f}%"
 
 
+def _swing_str(new_pct, cur_pct):
+    """Format change in higher seed win% between two states."""
+    if new_pct is None or cur_pct is None:
+        return "N/A"
+    diff = new_pct - cur_pct
+    return f"+{diff:.1f}%" if diff >= 0 else f"{diff:.1f}%"
+
+
 def _recent(entry):
     """Format a recency entry (season, winner, loser, round) as a short string."""
     if entry is None:
@@ -296,36 +379,58 @@ def _recent(entry):
     season, winner, loser, *rest = entry
     rnd = rest[0] if rest else ''
     suffix = f" {rnd}" if rnd else ''
-    return f"{season} {winner} over {loser}{suffix}"
+    return f"{season} {_abbr(winner)} over {_abbr(loser)}{suffix}"
 
 
-def build_output_table(records, recency):
+def build_output_table(records_hi, records_lo, records_tied,
+                       recency_hi, recency_lo, recency_tied):
     rows = []
-    for (a, b) in ALL_STATES:
-        pct        = _display_pct(a, b, records)
-        raw_pct    = _pct((a, b), records)
-        won, total = records.get((a, b), [0, 0])
+    for (kind, a, b) in EXPANDED_STATES:
+        if kind == 'tied':
+            recs, rec_map, state = records_tied, recency_tied, (a, b)
+        elif kind == 'hi':
+            recs, rec_map, state = records_hi, recency_hi, (a, b)
+        else:
+            recs, rec_map, state = records_lo, recency_lo, (a, b)
 
-        new_lw = _pct_after_leader_wins(a, b, records)
-        new_tw = _pct_after_trailer_wins(a, b, records)
+        won, total = recs.get(state, [0, 0])
+        hi_pct = (won / total * 100) if total > 0 else None
+        lo_pct = (100.0 - hi_pct) if hi_pct is not None else None
 
-        swing_lw = (new_lw - pct) if (pct is not None and new_lw is not None) else None
-        swing_tw = (new_tw - pct) if (pct is not None and new_tw is not None) else None
+        # Higher seed win% after higher seed wins next game
+        if kind == 'hi':
+            new_hi_if_hi = 100.0 if a + 1 == 4 else _pct_from((a + 1, b), records_hi)
+        elif kind == 'lo':
+            b1 = b + 1
+            new_hi_if_hi = (
+                _pct_from((a, a), records_tied) if b1 == a
+                else _pct_from((a, b1), records_lo)
+            )
+        else:  # tied
+            new_hi_if_hi = 100.0 if a + 1 == 4 else _pct_from((a + 1, a), records_hi)
 
-        leader_col = _fmt(pct)
-        if a == b and raw_pct is not None:
-            leader_col += f"  (home: {raw_pct:.1f}%)"
+        # Higher seed win% after lower seed wins next game
+        if kind == 'hi':
+            b1 = b + 1
+            new_hi_if_lo = (
+                _pct_from((a, a), records_tied) if b1 == a
+                else _pct_from((a, b1), records_hi)
+            )
+        elif kind == 'lo':
+            new_hi_if_lo = 0.0 if a + 1 == 4 else _pct_from((a + 1, b), records_lo)
+        else:  # tied
+            new_hi_if_lo = 0.0 if a + 1 == 4 else _pct_from((a + 1, a), records_lo)
 
-        rec = recency.get((a, b), {})
+        rec = rec_map.get(state, {})
         rows.append({
-            "State"                  : _label(a, b),
-            "N"                      : total,
-            "Leader Win%"            : leader_col,
-            "Trailer Win%"           : _fmt(100 - pct if pct is not None else None),
-            "Swing if Leader Wins"   : _fmt(swing_lw, sign=True),
-            "Swing if Trailer Wins"  : _fmt(swing_tw, sign=True),
-            "Last Leader Win"        : _recent(rec.get("leader")),
-            "Last Trailer Win"       : _recent(rec.get("trailer")),
+            "State"                : _state_label(kind, a, b),
+            "N"                    : total,
+            "Higher Seed Win%"     : _fmt(hi_pct),
+            "Lower Seed Win%"      : _fmt(lo_pct),
+            "Swing if Higher Wins" : _swing_str(new_hi_if_hi, hi_pct),
+            "Swing if Lower Wins"  : _swing_str(hi_pct, new_hi_if_lo),
+            "Last Higher Seed Win" : _recent(rec.get("higher")),
+            "Last Lower Seed Win"  : _recent(rec.get("lower")),
         })
 
     return pd.DataFrame(rows)
@@ -344,20 +449,22 @@ def main():
     breakdown = "  ".join(f"{g}-game: {n}" for g, n in sorted(by_length.items()))
     print(f"\nTotal series: {len(all_series)}  ({breakdown})\n")
 
-    records, recency = build_state_records(all_series)
-    table = build_output_table(records, recency)
+    records_hi, records_lo, records_tied, recency_hi, recency_lo, recency_tied = (
+        build_state_records(all_series)
+    )
+    table = build_output_table(records_hi, records_lo, records_tied,
+                               recency_hi, recency_lo, recency_tied)
 
     header = (
         f"=== NBA Playoff Win Probability by Series State ===\n"
         f"    All best-of-7 series | Seasons {START_YEAR}-{END_YEAR}\n\n"
-        f"  Leader Win%           = win% for the team currently ahead\n"
-        f"                          Tied states show 50% (symmetric by state alone);\n"
-        f"                          '(home: X%)' is the historical rate for the\n"
-        f"                          home team in game 1 (typically the higher seed)\n"
-        f"  Trailer Win%          = 100% - Leader Win%\n"
-        f"  Swing if Leader Wins  = change in Leader Win% if they win the next game\n"
-        f"  Swing if Trailer Wins = change in Leader Win% if the trailer wins the next game\n"
-        f"  Last Leader/Trailer Win = most recent series won from that state by each side\n"
+        f"  Higher Seed Win%      = historical win% for the higher seed from this state\n"
+        f"  Lower Seed Win%       = 100% - Higher Seed Win%\n"
+        f"  Swing if Higher Wins  = change in Higher Seed Win% if they win the next game\n"
+        f"  Swing if Lower Wins   = change in Higher Seed Win% if the lower seed wins next\n"
+        f"  Last Higher/Lower Win = most recent series won from that state by each side\n"
+        f"\n  Non-tied states appear as two rows: higher seed leading, then lower seed leading.\n"
+        f"  team_a (home team in game 1) is treated as the higher seed.\n"
     )
     print(header)
     print(table.to_string(index=False))
