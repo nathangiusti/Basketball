@@ -13,7 +13,6 @@
       min-height: 100vh;
     }
 
-    /* Header */
     .site-header {
       background: linear-gradient(135deg, #151530 0%, #1e1040 100%);
       border-bottom: 3px solid #f4873a;
@@ -27,10 +26,8 @@
     }
     .site-header p { color: #8888b0; margin-top: 0.4rem; font-size: 0.88rem; }
 
-    /* Layout */
     .page { max-width: 1200px; margin: 2rem auto; padding: 0 1rem 3rem; }
 
-    /* Cards */
     .card {
       background: #151530;
       border: 1px solid #25255a;
@@ -39,10 +36,9 @@
       margin-bottom: 1.5rem;
     }
 
-    /* Round filter */
     .filter-row {
       display: flex; align-items: center; gap: 1.25rem;
-      flex-wrap: wrap; margin-bottom: 1rem;
+      flex-wrap: wrap; margin-bottom: 1.25rem;
     }
     .filter-label {
       font-size: 0.72rem; text-transform: uppercase;
@@ -58,7 +54,23 @@
     }
     .round-label:hover { color: #dde0f0; }
 
-    /* Reference table */
+    .tab-bar {
+      display: flex; gap: 0;
+      border-bottom: 2px solid #25255a;
+      margin-bottom: 1.5rem;
+    }
+    .tab-btn {
+      background: transparent; color: #8888b0;
+      border: none; border-bottom: 3px solid transparent;
+      padding: 0.6rem 1.5rem; margin-bottom: -2px;
+      cursor: pointer; font-size: 0.9rem; font-weight: 600;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .tab-btn:hover { color: #dde0f0; }
+    .tab-btn.active { color: #f4873a; border-bottom-color: #f4873a; }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
     .table-title { font-size: 1rem; font-weight: 700; color: #f4873a; margin-bottom: 0.75rem; }
     .table-note { font-size: 0.78rem; color: #55558a; margin-bottom: 1rem; line-height: 1.5; }
     .table-scroll { overflow-x: auto; }
@@ -87,6 +99,7 @@
 
     @media (max-width: 520px) {
       .filter-row { gap: 0.75rem; }
+      .tab-btn { padding: 0.6rem 1rem; font-size: 0.82rem; }
     }
   </style>
 </head>
@@ -98,10 +111,9 @@
 </header>
 
 <main class="page">
-
-  <!-- Reference table -->
   <div class="card">
-    <div class="table-title">All Series States &mdash; Reference Table</div>
+
+    <!-- Shared round filter -->
     <div class="filter-row">
       <span class="filter-label">Rounds:</span>
       <label class="round-label"><input class="round-cb" type="checkbox" value="1" checked onchange="onRoundChange()"> 1st Round</label>
@@ -109,82 +121,65 @@
       <label class="round-label"><input class="round-cb" type="checkbox" value="3" checked onchange="onRoundChange()"> Conf. Finals</label>
       <label class="round-label"><input class="round-cb" type="checkbox" value="4" checked onchange="onRoundChange()"> Finals</label>
     </div>
-    <p class="table-note">
-      Non-tied states are split by whether the higher seed or lower seed is leading.
-      Win% shown for the current leader; tied states show the higher seed's historical win rate.
-      Swing = change in the leader's win% if either team wins the next game.
-    </p>
-    <div class="table-scroll">
-      <table>
-        <thead>
-          <tr>
-            <th>State</th>
-            <th>N</th>
-            <th>Leader Win%</th>
-            <th>Trailer Win%</th>
-            <th>If Leader Wins</th>
-            <th>If Trailer Wins</th>
-            <th>Last Leader Win</th>
-            <th>Last Trailer Win</th>
-          </tr>
-        </thead>
-        <tbody id="tBody"></tbody>
-      </table>
-    </div>
-  </div>
 
+    <!-- Tab bar -->
+    <div class="tab-bar">
+      <button class="tab-btn active" data-tab="combined" onclick="switchTab('combined')">No Seeding</button>
+      <button class="tab-btn"        data-tab="seeded"   onclick="switchTab('seeded')">By Seeding</button>
+    </div>
+
+    <!-- Tab 1: No Seeding -->
+    <div id="tab-combined" class="tab-panel active">
+      <div class="table-title">Series Win Probability &mdash; All Leaders</div>
+      <p class="table-note">
+        Win% for whichever team is currently leading, regardless of seeding.
+        Tied states show 50% (symmetric by state); <em>(home: X%)</em> is the historical
+        rate for the home team in game&nbsp;1. Swing&nbsp;= change in the leader&rsquo;s win% if either team wins the next game.
+      </p>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>State</th><th>N</th><th>Leader Win%</th><th>Trailer Win%</th>
+              <th>If Leader Wins</th><th>If Trailer Wins</th>
+              <th>Last Leader Win</th><th>Last Trailer Win</th>
+            </tr>
+          </thead>
+          <tbody id="tBodyCombined"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Tab 2: By Seeding -->
+    <div id="tab-seeded" class="tab-panel">
+      <div class="table-title">Series Win Probability &mdash; By Seeding</div>
+      <p class="table-note">
+        Non-tied states are split by whether the higher or lower seed is leading.
+        Win% is always from the higher seed&rsquo;s perspective.
+        Swing&nbsp;= change in the higher seed&rsquo;s win% if either team wins the next game.
+      </p>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>State</th><th>N</th><th>Higher Seed Win%</th><th>Lower Seed Win%</th>
+              <th>If Higher Seed Wins</th><th>If Lower Seed Wins</th>
+              <th>Last Higher Seed Win</th><th>Last Lower Seed Win</th>
+            </tr>
+          </thead>
+          <tbody id="tBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
 </main>
 
 <script>
 const DATA = {
-  "0-0": {
-    "tied": true,
-    "byRound": {
-      "0": {
-        "won": 2,
-        "total": 2,
-        "lastL": "1999 SAS over NYK",
-        "lastLSeason": 1999,
-        "lastT": null,
-        "lastTSeason": 0
-      },
-      "1": {
-        "won": 146,
-        "total": 184,
-        "lastL": "2025 DEN over LAC (1)",
-        "lastLSeason": 2025,
-        "lastT": "2025 MIN over LAL (1)",
-        "lastTSeason": 2025
-      },
-      "2": {
-        "won": 158,
-        "total": 212,
-        "lastL": "2025 MIN over GSW (2)",
-        "lastLSeason": 2025,
-        "lastT": "2025 NYK over BOS (2)",
-        "lastTSeason": 2025
-      },
-      "3": {
-        "won": 83,
-        "total": 127,
-        "lastL": "2025 OKC over MIN (CF)",
-        "lastLSeason": 2025,
-        "lastT": "2025 IND over NYK (CF)",
-        "lastTSeason": 2025
-      },
-      "4": {
-        "won": 52,
-        "total": 71,
-        "lastL": "2025 OKC over IND (F)",
-        "lastLSeason": 2025,
-        "lastT": "2021 MIL over PHX (F)",
-        "lastTSeason": 2021
-      }
-    }
-  },
-  "1-0": {
-    "tied": false,
-    "home": {
+  "combined": {
+    "0-0": {
+      "tied": true,
       "byRound": {
         "0": {
           "won": 2,
@@ -195,267 +190,86 @@ const DATA = {
           "lastTSeason": 0
         },
         "1": {
-          "won": 117,
-          "total": 132,
+          "won": 146,
+          "total": 184,
+          "lastL": "2025 DEN over LAC (1)",
+          "lastLSeason": 2025,
+          "lastT": "2025 MIN over LAL (1)",
+          "lastTSeason": 2025
+        },
+        "2": {
+          "won": 158,
+          "total": 212,
+          "lastL": "2025 MIN over GSW (2)",
+          "lastLSeason": 2025,
+          "lastT": "2025 NYK over BOS (2)",
+          "lastTSeason": 2025
+        },
+        "3": {
+          "won": 83,
+          "total": 127,
+          "lastL": "2025 OKC over MIN (CF)",
+          "lastLSeason": 2025,
+          "lastT": "2025 IND over NYK (CF)",
+          "lastTSeason": 2025
+        },
+        "4": {
+          "won": 52,
+          "total": 71,
+          "lastL": "2025 OKC over IND (F)",
+          "lastLSeason": 2025,
+          "lastT": "2021 MIL over PHX (F)",
+          "lastTSeason": 2021
+        }
+      }
+    },
+    "1-0": {
+      "tied": false,
+      "byRound": {
+        "0": {
+          "won": 2,
+          "total": 2,
+          "lastL": "1999 SAS over NYK",
+          "lastLSeason": 1999,
+          "lastT": null,
+          "lastTSeason": 0
+        },
+        "1": {
+          "won": 140,
+          "total": 184,
           "lastL": "2025 DEN over LAC (1)",
           "lastLSeason": 2025,
           "lastT": "2024 DAL over LAC (1)",
           "lastTSeason": 2024
         },
         "2": {
-          "won": 126,
-          "total": 148,
-          "lastL": "2024 BOS over CLE (2)",
-          "lastLSeason": 2024,
-          "lastT": "2024 DAL over OKC (2)",
-          "lastTSeason": 2024
-        },
-        "3": {
-          "won": 71,
-          "total": 87,
-          "lastL": "2025 OKC over MIN (CF)",
-          "lastLSeason": 2025,
-          "lastT": "2022 BOS over MIA (CF)",
-          "lastTSeason": 2022
-        },
-        "4": {
-          "won": 42,
-          "total": 53,
-          "lastL": "2024 BOS over DAL (F)",
-          "lastLSeason": 2024,
-          "lastT": "2021 MIL over PHX (F)",
-          "lastTSeason": 2021
-        }
-      }
-    },
-    "away": {
-      "byRound": {
-        "0": {
-          "won": 0,
-          "total": 0,
-          "lastL": null,
-          "lastLSeason": 0,
-          "lastT": null,
-          "lastTSeason": 0
-        },
-        "1": {
-          "won": 23,
-          "total": 52,
-          "lastL": "2025 MIN over LAL (1)",
-          "lastLSeason": 2025,
-          "lastT": "2023 PHX over LAC (1)",
-          "lastTSeason": 2023
-        },
-        "2": {
-          "won": 32,
-          "total": 64,
+          "won": 158,
+          "total": 212,
           "lastL": "2025 NYK over BOS (2)",
           "lastLSeason": 2025,
           "lastT": "2025 MIN over GSW (2)",
           "lastTSeason": 2025
         },
         "3": {
-          "won": 28,
-          "total": 40,
-          "lastL": "2025 IND over NYK (CF)",
-          "lastLSeason": 2025,
-          "lastT": "2021 MIL over ATL (CF)",
-          "lastTSeason": 2021
-        },
-        "4": {
-          "won": 8,
-          "total": 18,
-          "lastL": "2004 DET over LAL (F)",
-          "lastLSeason": 2004,
-          "lastT": "2025 OKC over IND (F)",
-          "lastTSeason": 2025
-        }
-      }
-    }
-  },
-  "1-1": {
-    "tied": true,
-    "byRound": {
-      "0": {
-        "won": 0,
-        "total": 0,
-        "lastL": null,
-        "lastLSeason": 0,
-        "lastT": null,
-        "lastTSeason": 0
-      },
-      "1": {
-        "won": 45,
-        "total": 72,
-        "lastL": "2025 DEN over LAC (1)",
-        "lastLSeason": 2025,
-        "lastT": "2025 MIN over LAL (1)",
-        "lastTSeason": 2025
-      },
-      "2": {
-        "won": 64,
-        "total": 98,
-        "lastL": "2025 MIN over GSW (2)",
-        "lastLSeason": 2025,
-        "lastT": "2024 DAL over OKC (2)",
-        "lastTSeason": 2024
-      },
-      "3": {
-        "won": 28,
-        "total": 50,
-        "lastL": "2021 MIL over ATL (CF)",
-        "lastLSeason": 2021,
-        "lastT": "2022 BOS over MIA (CF)",
-        "lastTSeason": 2022
-      },
-      "4": {
-        "won": 28,
-        "total": 39,
-        "lastL": "2025 OKC over IND (F)",
-        "lastLSeason": 2025,
-        "lastT": "2012 MIA over OKC (F)",
-        "lastTSeason": 2012
-      }
-    }
-  },
-  "2-0": {
-    "tied": false,
-    "home": {
-      "byRound": {
-        "0": {
-          "won": 2,
-          "total": 2,
-          "lastL": "1999 SAS over NYK",
-          "lastLSeason": 1999,
-          "lastT": null,
-          "lastTSeason": 0
-        },
-        "1": {
-          "won": 98,
-          "total": 103,
-          "lastL": "2025 OKC over MEM (1)",
-          "lastLSeason": 2025,
-          "lastT": "2023 GSW over SAC (1)",
-          "lastTSeason": 2023
-        },
-        "2": {
-          "won": 92,
-          "total": 99,
-          "lastL": "2023 DEN over PHX (2)",
-          "lastLSeason": 2023,
-          "lastT": "2024 IND over NYK (2)",
-          "lastTSeason": 2024
-        },
-        "3": {
-          "won": 55,
-          "total": 61,
-          "lastL": "2025 OKC over MIN (CF)",
-          "lastLSeason": 2025,
-          "lastT": "2019 TOR over MIL (CF)",
-          "lastTSeason": 2019
-        },
-        "4": {
-          "won": 24,
-          "total": 29,
-          "lastL": "2024 BOS over DAL (F)",
-          "lastLSeason": 2024,
-          "lastT": "2021 MIL over PHX (F)",
-          "lastTSeason": 2021
-        }
-      }
-    },
-    "away": {
-      "byRound": {
-        "0": {
-          "won": 0,
-          "total": 0,
-          "lastL": null,
-          "lastLSeason": 0,
-          "lastT": null,
-          "lastTSeason": 0
-        },
-        "1": {
-          "won": 6,
-          "total": 9,
-          "lastL": "2020 MIA over IND (1)",
-          "lastLSeason": 2020,
-          "lastT": "2021 LAC over DAL (1)",
-          "lastTSeason": 2021
-        },
-        "2": {
-          "won": 13,
-          "total": 15,
-          "lastL": "2025 NYK over BOS (2)",
-          "lastLSeason": 2025,
-          "lastT": "1994 Houston Rockets over Phoenix Suns (2)",
-          "lastTSeason": 1994
-        },
-        "3": {
-          "won": 16,
-          "total": 16,
-          "lastL": "2025 IND over NYK (CF)",
-          "lastLSeason": 2025,
-          "lastT": null,
-          "lastTSeason": 0
-        },
-        "4": {
-          "won": 3,
-          "total": 3,
-          "lastL": "1995 Houston Rockets over Orlando Magic (F)",
-          "lastLSeason": 1995,
-          "lastT": null,
-          "lastTSeason": 0
-        }
-      }
-    }
-  },
-  "2-1": {
-    "tied": false,
-    "home": {
-      "byRound": {
-        "0": {
-          "won": 2,
-          "total": 2,
-          "lastL": "1999 SAS over NYK",
-          "lastLSeason": 1999,
-          "lastT": null,
-          "lastTSeason": 0
-        },
-        "1": {
-          "won": 73,
-          "total": 80,
-          "lastL": "2025 IND over MIL (1)",
-          "lastLSeason": 2025,
-          "lastT": "2023 GSW over SAC (1)",
-          "lastTSeason": 2023
-        },
-        "2": {
-          "won": 103,
-          "total": 118,
-          "lastL": "2025 MIN over GSW (2)",
-          "lastLSeason": 2025,
-          "lastT": "2024 IND over NYK (2)",
-          "lastTSeason": 2024
-        },
-        "3": {
-          "won": 50,
-          "total": 62,
+          "won": 99,
+          "total": 127,
           "lastL": "2025 OKC over MIN (CF)",
           "lastLSeason": 2025,
           "lastT": "2022 BOS over MIA (CF)",
           "lastTSeason": 2022
         },
         "4": {
-          "won": 34,
-          "total": 41,
-          "lastL": "2023 DEN over MIA (F)",
-          "lastLSeason": 2023,
-          "lastT": "2021 MIL over PHX (F)",
-          "lastTSeason": 2021
+          "won": 50,
+          "total": 71,
+          "lastL": "2024 BOS over DAL (F)",
+          "lastLSeason": 2024,
+          "lastT": "2025 OKC over IND (F)",
+          "lastTSeason": 2025
         }
       }
     },
-    "away": {
+    "1-1": {
+      "tied": true,
       "byRound": {
         "0": {
           "won": 0,
@@ -466,88 +280,176 @@ const DATA = {
           "lastTSeason": 0
         },
         "1": {
+          "won": 45,
+          "total": 72,
+          "lastL": "2025 DEN over LAC (1)",
+          "lastLSeason": 2025,
+          "lastT": "2025 MIN over LAL (1)",
+          "lastTSeason": 2025
+        },
+        "2": {
+          "won": 64,
+          "total": 98,
+          "lastL": "2025 MIN over GSW (2)",
+          "lastLSeason": 2025,
+          "lastT": "2024 DAL over OKC (2)",
+          "lastTSeason": 2024
+        },
+        "3": {
           "won": 28,
-          "total": 47,
+          "total": 50,
+          "lastL": "2021 MIL over ATL (CF)",
+          "lastLSeason": 2021,
+          "lastT": "2022 BOS over MIA (CF)",
+          "lastTSeason": 2022
+        },
+        "4": {
+          "won": 28,
+          "total": 39,
+          "lastL": "2025 OKC over IND (F)",
+          "lastLSeason": 2025,
+          "lastT": "2012 MIA over OKC (F)",
+          "lastTSeason": 2012
+        }
+      }
+    },
+    "2-0": {
+      "tied": false,
+      "byRound": {
+        "0": {
+          "won": 2,
+          "total": 2,
+          "lastL": "1999 SAS over NYK",
+          "lastLSeason": 1999,
+          "lastT": null,
+          "lastTSeason": 0
+        },
+        "1": {
+          "won": 104,
+          "total": 112,
+          "lastL": "2025 OKC over MEM (1)",
+          "lastLSeason": 2025,
+          "lastT": "2023 GSW over SAC (1)",
+          "lastTSeason": 2023
+        },
+        "2": {
+          "won": 105,
+          "total": 114,
+          "lastL": "2025 NYK over BOS (2)",
+          "lastLSeason": 2025,
+          "lastT": "2024 IND over NYK (2)",
+          "lastTSeason": 2024
+        },
+        "3": {
+          "won": 71,
+          "total": 77,
+          "lastL": "2025 OKC over MIN (CF)",
+          "lastLSeason": 2025,
+          "lastT": "2019 TOR over MIL (CF)",
+          "lastTSeason": 2019
+        },
+        "4": {
+          "won": 27,
+          "total": 32,
+          "lastL": "2024 BOS over DAL (F)",
+          "lastLSeason": 2024,
+          "lastT": "2021 MIL over PHX (F)",
+          "lastTSeason": 2021
+        }
+      }
+    },
+    "2-1": {
+      "tied": false,
+      "byRound": {
+        "0": {
+          "won": 2,
+          "total": 2,
+          "lastL": "1999 SAS over NYK",
+          "lastLSeason": 1999,
+          "lastT": null,
+          "lastTSeason": 0
+        },
+        "1": {
+          "won": 101,
+          "total": 127,
           "lastL": "2025 MIN over LAL (1)",
           "lastLSeason": 2025,
           "lastT": "2025 DEN over LAC (1)",
           "lastTSeason": 2025
         },
         "2": {
-          "won": 31,
-          "total": 51,
-          "lastL": "2025 NYK over BOS (2)",
+          "won": 134,
+          "total": 169,
+          "lastL": "2025 MIN over GSW (2)",
           "lastLSeason": 2025,
           "lastT": "2025 OKC over DEN (2)",
           "lastTSeason": 2025
         },
         "3": {
-          "won": 24,
-          "total": 33,
-          "lastL": "2025 IND over NYK (CF)",
+          "won": 74,
+          "total": 95,
+          "lastL": "2025 OKC over MIN (CF)",
           "lastLSeason": 2025,
-          "lastT": "2016 GSW over OKC (CF)",
-          "lastTSeason": 2016
+          "lastT": "2022 BOS over MIA (CF)",
+          "lastTSeason": 2022
         },
         "4": {
-          "won": 10,
-          "total": 17,
-          "lastL": "2012 MIA over OKC (F)",
-          "lastLSeason": 2012,
+          "won": 44,
+          "total": 58,
+          "lastL": "2023 DEN over MIA (F)",
+          "lastLSeason": 2023,
           "lastT": "2025 OKC over IND (F)",
           "lastTSeason": 2025
         }
       }
-    }
-  },
-  "2-2": {
-    "tied": true,
-    "byRound": {
-      "0": {
-        "won": 1,
-        "total": 1,
-        "lastL": "1997 CHI over UTA",
-        "lastLSeason": 1997,
-        "lastT": null,
-        "lastTSeason": 0
-      },
-      "1": {
-        "won": 46,
-        "total": 56,
-        "lastL": "2025 DEN over LAC (1)",
-        "lastLSeason": 2025,
-        "lastT": "2024 DAL over LAC (1)",
-        "lastTSeason": 2024
-      },
-      "2": {
-        "won": 72,
-        "total": 92,
-        "lastL": "2025 OKC over DEN (2)",
-        "lastLSeason": 2025,
-        "lastT": "2024 MIN over DEN (2)",
-        "lastTSeason": 2024
-      },
-      "3": {
-        "won": 34,
-        "total": 49,
-        "lastL": "2021 MIL over ATL (CF)",
-        "lastLSeason": 2021,
-        "lastT": "2022 BOS over MIA (CF)",
-        "lastTSeason": 2022
-      },
-      "4": {
-        "won": 22,
-        "total": 31,
-        "lastL": "2025 OKC over IND (F)",
-        "lastLSeason": 2025,
-        "lastT": "2021 MIL over PHX (F)",
-        "lastTSeason": 2021
+    },
+    "2-2": {
+      "tied": true,
+      "byRound": {
+        "0": {
+          "won": 1,
+          "total": 1,
+          "lastL": "1997 CHI over UTA",
+          "lastLSeason": 1997,
+          "lastT": null,
+          "lastTSeason": 0
+        },
+        "1": {
+          "won": 46,
+          "total": 56,
+          "lastL": "2025 DEN over LAC (1)",
+          "lastLSeason": 2025,
+          "lastT": "2024 DAL over LAC (1)",
+          "lastTSeason": 2024
+        },
+        "2": {
+          "won": 72,
+          "total": 92,
+          "lastL": "2025 OKC over DEN (2)",
+          "lastLSeason": 2025,
+          "lastT": "2024 MIN over DEN (2)",
+          "lastTSeason": 2024
+        },
+        "3": {
+          "won": 34,
+          "total": 49,
+          "lastL": "2021 MIL over ATL (CF)",
+          "lastLSeason": 2021,
+          "lastT": "2022 BOS over MIA (CF)",
+          "lastTSeason": 2022
+        },
+        "4": {
+          "won": 22,
+          "total": 31,
+          "lastL": "2025 OKC over IND (F)",
+          "lastLSeason": 2025,
+          "lastT": "2021 MIL over PHX (F)",
+          "lastTSeason": 2021
+        }
       }
-    }
-  },
-  "3-0": {
-    "tied": false,
-    "home": {
+    },
+    "3-0": {
+      "tied": false,
       "byRound": {
         "0": {
           "won": 0,
@@ -558,32 +460,32 @@ const DATA = {
           "lastTSeason": 0
         },
         "1": {
-          "won": 54,
-          "total": 54,
+          "won": 57,
+          "total": 57,
           "lastL": "2025 OKC over MEM (1)",
           "lastLSeason": 2025,
           "lastT": null,
           "lastTSeason": 0
         },
         "2": {
-          "won": 35,
-          "total": 35,
+          "won": 43,
+          "total": 43,
           "lastL": "2021 PHX over DEN (2)",
           "lastLSeason": 2021,
           "lastT": null,
           "lastTSeason": 0
         },
         "3": {
-          "won": 24,
-          "total": 24,
-          "lastL": "2024 BOS over IND (CF)",
+          "won": 32,
+          "total": 32,
+          "lastL": "2024 DAL over MIN (CF)",
           "lastLSeason": 2024,
           "lastT": null,
           "lastTSeason": 0
         },
         "4": {
-          "won": 11,
-          "total": 11,
+          "won": 13,
+          "total": 13,
           "lastL": "2024 BOS over DAL (F)",
           "lastLSeason": 2024,
           "lastT": null,
@@ -591,54 +493,8 @@ const DATA = {
         }
       }
     },
-    "away": {
-      "byRound": {
-        "0": {
-          "won": 0,
-          "total": 0,
-          "lastL": null,
-          "lastLSeason": 0,
-          "lastT": null,
-          "lastTSeason": 0
-        },
-        "1": {
-          "won": 3,
-          "total": 3,
-          "lastL": "2020 MIA over IND (1)",
-          "lastLSeason": 2020,
-          "lastT": null,
-          "lastTSeason": 0
-        },
-        "2": {
-          "won": 8,
-          "total": 8,
-          "lastL": "2020 MIA over MIL (2)",
-          "lastLSeason": 2020,
-          "lastT": null,
-          "lastTSeason": 0
-        },
-        "3": {
-          "won": 8,
-          "total": 8,
-          "lastL": "2024 DAL over MIN (CF)",
-          "lastLSeason": 2024,
-          "lastT": null,
-          "lastTSeason": 0
-        },
-        "4": {
-          "won": 2,
-          "total": 2,
-          "lastL": "1995 Houston Rockets over Orlando Magic (F)",
-          "lastLSeason": 1995,
-          "lastT": null,
-          "lastTSeason": 0
-        }
-      }
-    }
-  },
-  "3-1": {
-    "tied": false,
-    "home": {
+    "3-1": {
+      "tied": false,
       "byRound": {
         "0": {
           "won": 1,
@@ -649,32 +505,32 @@ const DATA = {
           "lastTSeason": 0
         },
         "1": {
-          "won": 62,
-          "total": 62,
-          "lastL": "2025 IND over MIL (1)",
+          "won": 87,
+          "total": 90,
+          "lastL": "2025 MIN over LAL (1)",
           "lastLSeason": 2025,
-          "lastT": null,
-          "lastTSeason": 0
+          "lastT": "2020 DEN over UTA (1)",
+          "lastTSeason": 2020
         },
         "2": {
-          "won": 63,
-          "total": 65,
+          "won": 90,
+          "total": 94,
           "lastL": "2025 MIN over GSW (2)",
           "lastLSeason": 2025,
           "lastT": "2020 DEN over LAC (2)",
           "lastTSeason": 2020
         },
         "3": {
-          "won": 32,
-          "total": 33,
+          "won": 56,
+          "total": 60,
           "lastL": "2025 OKC over MIN (CF)",
           "lastLSeason": 2025,
-          "lastT": "1968 Boston Celtics over Philadelphia 76ers (CF)",
-          "lastTSeason": 1968
+          "lastT": "2016 GSW over OKC (CF)",
+          "lastTSeason": 2016
         },
         "4": {
-          "won": 23,
-          "total": 24,
+          "won": 30,
+          "total": 31,
           "lastL": "2024 BOS over DAL (F)",
           "lastLSeason": 2024,
           "lastT": "2016 CLE over GSW (F)",
@@ -682,7 +538,53 @@ const DATA = {
         }
       }
     },
-    "away": {
+    "3-2": {
+      "tied": false,
+      "byRound": {
+        "0": {
+          "won": 1,
+          "total": 1,
+          "lastL": "1997 CHI over UTA",
+          "lastLSeason": 1997,
+          "lastT": null,
+          "lastTSeason": 0
+        },
+        "1": {
+          "won": 79,
+          "total": 90,
+          "lastL": "2025 DEN over LAC (1)",
+          "lastLSeason": 2025,
+          "lastT": "2021 LAC over DAL (1)",
+          "lastTSeason": 2021
+        },
+        "2": {
+          "won": 108,
+          "total": 125,
+          "lastL": "2025 OKC over DEN (2)",
+          "lastLSeason": 2025,
+          "lastT": "2024 MIN over DEN (2)",
+          "lastTSeason": 2024
+        },
+        "3": {
+          "won": 61,
+          "total": 77,
+          "lastL": "2025 IND over NYK (CF)",
+          "lastLSeason": 2025,
+          "lastT": "2018 GSW over HOU (CF)",
+          "lastTSeason": 2018
+        },
+        "4": {
+          "won": 36,
+          "total": 45,
+          "lastL": "2025 OKC over IND (F)",
+          "lastLSeason": 2025,
+          "lastT": "2016 CLE over GSW (F)",
+          "lastTSeason": 2016
+        }
+      }
+    },
+    "3-3": {
+      "tied": true,
       "byRound": {
         "0": {
           "won": 0,
@@ -694,86 +596,178 @@ const DATA = {
         },
         "1": {
           "won": 25,
-          "total": 28,
-          "lastL": "2025 MIN over LAL (1)",
-          "lastLSeason": 2025,
-          "lastT": "2020 DEN over UTA (1)",
-          "lastTSeason": 2020
-        },
-        "2": {
-          "won": 27,
-          "total": 29,
-          "lastL": "2025 NYK over BOS (2)",
-          "lastLSeason": 2025,
-          "lastT": "2015 HOU over LAC (2)",
-          "lastTSeason": 2015
-        },
-        "3": {
-          "won": 24,
-          "total": 27,
-          "lastL": "2025 IND over NYK (CF)",
-          "lastLSeason": 2025,
-          "lastT": "2016 GSW over OKC (CF)",
-          "lastTSeason": 2016
-        },
-        "4": {
-          "won": 7,
-          "total": 7,
-          "lastL": "2012 MIA over OKC (F)",
-          "lastLSeason": 2012,
-          "lastT": null,
-          "lastTSeason": 0
-        }
-      }
-    }
-  },
-  "3-2": {
-    "tied": false,
-    "home": {
-      "byRound": {
-        "0": {
-          "won": 1,
-          "total": 1,
-          "lastL": "1997 CHI over UTA",
-          "lastLSeason": 1997,
-          "lastT": null,
-          "lastTSeason": 0
-        },
-        "1": {
-          "won": 52,
-          "total": 54,
+          "total": 33,
           "lastL": "2025 DEN over LAC (1)",
           "lastLSeason": 2025,
-          "lastT": "2014 BKN over TOR (1)",
-          "lastTSeason": 2014
+          "lastT": "2025 GSW over HOU (1)",
+          "lastTSeason": 2025
         },
         "2": {
-          "won": 77,
-          "total": 86,
+          "won": 44,
+          "total": 59,
           "lastL": "2025 OKC over DEN (2)",
           "lastLSeason": 2025,
           "lastT": "2024 MIN over DEN (2)",
           "lastTSeason": 2024
         },
         "3": {
-          "won": 37,
-          "total": 44,
-          "lastL": "2021 PHX over LAC (CF)",
-          "lastLSeason": 2021,
-          "lastT": "2018 GSW over HOU (CF)",
-          "lastTSeason": 2018
+          "won": 23,
+          "total": 34,
+          "lastL": "2016 GSW over OKC (CF)",
+          "lastLSeason": 2016,
+          "lastT": "2023 MIA over BOS (CF)",
+          "lastTSeason": 2023
         },
         "4": {
-          "won": 26,
-          "total": 29,
+          "won": 16,
+          "total": 20,
           "lastL": "2025 OKC over IND (F)",
           "lastLSeason": 2025,
           "lastT": "2016 CLE over GSW (F)",
           "lastTSeason": 2016
         }
       }
+    }
+  },
+  "seeded": {
+    "0-0": {
+      "tied": true,
+      "byRound": {
+        "0": {
+          "won": 2,
+          "total": 2,
+          "lastL": "1999 SAS over NYK",
+          "lastLSeason": 1999,
+          "lastT": null,
+          "lastTSeason": 0
+        },
+        "1": {
+          "won": 146,
+          "total": 184,
+          "lastL": "2025 DEN over LAC (1)",
+          "lastLSeason": 2025,
+          "lastT": "2025 MIN over LAL (1)",
+          "lastTSeason": 2025
+        },
+        "2": {
+          "won": 158,
+          "total": 212,
+          "lastL": "2025 MIN over GSW (2)",
+          "lastLSeason": 2025,
+          "lastT": "2025 NYK over BOS (2)",
+          "lastTSeason": 2025
+        },
+        "3": {
+          "won": 83,
+          "total": 127,
+          "lastL": "2025 OKC over MIN (CF)",
+          "lastLSeason": 2025,
+          "lastT": "2025 IND over NYK (CF)",
+          "lastTSeason": 2025
+        },
+        "4": {
+          "won": 52,
+          "total": 71,
+          "lastL": "2025 OKC over IND (F)",
+          "lastLSeason": 2025,
+          "lastT": "2021 MIL over PHX (F)",
+          "lastTSeason": 2021
+        }
+      }
     },
-    "away": {
+    "1-0": {
+      "tied": false,
+      "home": {
+        "byRound": {
+          "0": {
+            "won": 2,
+            "total": 2,
+            "lastL": "1999 SAS over NYK",
+            "lastLSeason": 1999,
+            "lastT": null,
+            "lastTSeason": 0
+          },
+          "1": {
+            "won": 117,
+            "total": 132,
+            "lastL": "2025 DEN over LAC (1)",
+            "lastLSeason": 2025,
+            "lastT": "2024 DAL over LAC (1)",
+            "lastTSeason": 2024
+          },
+          "2": {
+            "won": 126,
+            "total": 148,
+            "lastL": "2024 BOS over CLE (2)",
+            "lastLSeason": 2024,
+            "lastT": "2024 DAL over OKC (2)",
+            "lastTSeason": 2024
+          },
+          "3": {
+            "won": 71,
+            "total": 87,
+            "lastL": "2025 OKC over MIN (CF)",
+            "lastLSeason": 2025,
+            "lastT": "2022 BOS over MIA (CF)",
+            "lastTSeason": 2022
+          },
+          "4": {
+            "won": 42,
+            "total": 53,
+            "lastL": "2024 BOS over DAL (F)",
+            "lastLSeason": 2024,
+            "lastT": "2021 MIL over PHX (F)",
+            "lastTSeason": 2021
+          }
+        }
+      },
+      "away": {
+        "byRound": {
+          "0": {
+            "won": 0,
+            "total": 0,
+            "lastL": null,
+            "lastLSeason": 0,
+            "lastT": null,
+            "lastTSeason": 0
+          },
+          "1": {
+            "won": 23,
+            "total": 52,
+            "lastL": "2025 MIN over LAL (1)",
+            "lastLSeason": 2025,
+            "lastT": "2023 PHX over LAC (1)",
+            "lastTSeason": 2023
+          },
+          "2": {
+            "won": 32,
+            "total": 64,
+            "lastL": "2025 NYK over BOS (2)",
+            "lastLSeason": 2025,
+            "lastT": "2025 MIN over GSW (2)",
+            "lastTSeason": 2025
+          },
+          "3": {
+            "won": 28,
+            "total": 40,
+            "lastL": "2025 IND over NYK (CF)",
+            "lastLSeason": 2025,
+            "lastT": "2021 MIL over ATL (CF)",
+            "lastTSeason": 2021
+          },
+          "4": {
+            "won": 8,
+            "total": 18,
+            "lastL": "2004 DET over LAL (F)",
+            "lastLSeason": 2004,
+            "lastT": "2025 OKC over IND (F)",
+            "lastTSeason": 2025
+          }
+        }
+      }
+    },
+    "1-1": {
+      "tied": true,
       "byRound": {
         "0": {
           "won": 0,
@@ -784,88 +778,603 @@ const DATA = {
           "lastTSeason": 0
         },
         "1": {
-          "won": 27,
-          "total": 36,
-          "lastL": "2025 GSW over HOU (1)",
+          "won": 45,
+          "total": 72,
+          "lastL": "2025 DEN over LAC (1)",
           "lastLSeason": 2025,
-          "lastT": "2021 LAC over DAL (1)",
-          "lastTSeason": 2021
+          "lastT": "2025 MIN over LAL (1)",
+          "lastTSeason": 2025
         },
         "2": {
-          "won": 31,
-          "total": 39,
-          "lastL": "2025 NYK over BOS (2)",
+          "won": 64,
+          "total": 98,
+          "lastL": "2025 MIN over GSW (2)",
           "lastLSeason": 2025,
-          "lastT": "2023 BOS over PHI (2)",
-          "lastTSeason": 2023
+          "lastT": "2024 DAL over OKC (2)",
+          "lastTSeason": 2024
         },
         "3": {
-          "won": 24,
-          "total": 33,
-          "lastL": "2025 IND over NYK (CF)",
-          "lastLSeason": 2025,
-          "lastT": "2016 GSW over OKC (CF)",
-          "lastTSeason": 2016
+          "won": 28,
+          "total": 50,
+          "lastL": "2021 MIL over ATL (CF)",
+          "lastLSeason": 2021,
+          "lastT": "2022 BOS over MIA (CF)",
+          "lastTSeason": 2022
         },
         "4": {
-          "won": 10,
-          "total": 16,
-          "lastL": "2021 MIL over PHX (F)",
-          "lastLSeason": 2021,
-          "lastT": "2013 MIA over SAS (F)",
-          "lastTSeason": 2013
+          "won": 28,
+          "total": 39,
+          "lastL": "2025 OKC over IND (F)",
+          "lastLSeason": 2025,
+          "lastT": "2012 MIA over OKC (F)",
+          "lastTSeason": 2012
         }
       }
-    }
-  },
-  "3-3": {
-    "tied": true,
-    "byRound": {
-      "0": {
-        "won": 0,
-        "total": 0,
-        "lastL": null,
-        "lastLSeason": 0,
-        "lastT": null,
-        "lastTSeason": 0
+    },
+    "2-0": {
+      "tied": false,
+      "home": {
+        "byRound": {
+          "0": {
+            "won": 2,
+            "total": 2,
+            "lastL": "1999 SAS over NYK",
+            "lastLSeason": 1999,
+            "lastT": null,
+            "lastTSeason": 0
+          },
+          "1": {
+            "won": 98,
+            "total": 103,
+            "lastL": "2025 OKC over MEM (1)",
+            "lastLSeason": 2025,
+            "lastT": "2023 GSW over SAC (1)",
+            "lastTSeason": 2023
+          },
+          "2": {
+            "won": 92,
+            "total": 99,
+            "lastL": "2023 DEN over PHX (2)",
+            "lastLSeason": 2023,
+            "lastT": "2024 IND over NYK (2)",
+            "lastTSeason": 2024
+          },
+          "3": {
+            "won": 55,
+            "total": 61,
+            "lastL": "2025 OKC over MIN (CF)",
+            "lastLSeason": 2025,
+            "lastT": "2019 TOR over MIL (CF)",
+            "lastTSeason": 2019
+          },
+          "4": {
+            "won": 24,
+            "total": 29,
+            "lastL": "2024 BOS over DAL (F)",
+            "lastLSeason": 2024,
+            "lastT": "2021 MIL over PHX (F)",
+            "lastTSeason": 2021
+          }
+        }
       },
-      "1": {
-        "won": 25,
-        "total": 33,
-        "lastL": "2025 DEN over LAC (1)",
-        "lastLSeason": 2025,
-        "lastT": "2025 GSW over HOU (1)",
-        "lastTSeason": 2025
+      "away": {
+        "byRound": {
+          "0": {
+            "won": 0,
+            "total": 0,
+            "lastL": null,
+            "lastLSeason": 0,
+            "lastT": null,
+            "lastTSeason": 0
+          },
+          "1": {
+            "won": 6,
+            "total": 9,
+            "lastL": "2020 MIA over IND (1)",
+            "lastLSeason": 2020,
+            "lastT": "2021 LAC over DAL (1)",
+            "lastTSeason": 2021
+          },
+          "2": {
+            "won": 13,
+            "total": 15,
+            "lastL": "2025 NYK over BOS (2)",
+            "lastLSeason": 2025,
+            "lastT": "1994 HOU over PHX (2)",
+            "lastTSeason": 1994
+          },
+          "3": {
+            "won": 16,
+            "total": 16,
+            "lastL": "2025 IND over NYK (CF)",
+            "lastLSeason": 2025,
+            "lastT": null,
+            "lastTSeason": 0
+          },
+          "4": {
+            "won": 3,
+            "total": 3,
+            "lastL": "1995 HOU over ORL (F)",
+            "lastLSeason": 1995,
+            "lastT": null,
+            "lastTSeason": 0
+          }
+        }
+      }
+    },
+    "2-1": {
+      "tied": false,
+      "home": {
+        "byRound": {
+          "0": {
+            "won": 2,
+            "total": 2,
+            "lastL": "1999 SAS over NYK",
+            "lastLSeason": 1999,
+            "lastT": null,
+            "lastTSeason": 0
+          },
+          "1": {
+            "won": 73,
+            "total": 80,
+            "lastL": "2025 IND over MIL (1)",
+            "lastLSeason": 2025,
+            "lastT": "2023 GSW over SAC (1)",
+            "lastTSeason": 2023
+          },
+          "2": {
+            "won": 103,
+            "total": 118,
+            "lastL": "2025 MIN over GSW (2)",
+            "lastLSeason": 2025,
+            "lastT": "2024 IND over NYK (2)",
+            "lastTSeason": 2024
+          },
+          "3": {
+            "won": 50,
+            "total": 62,
+            "lastL": "2025 OKC over MIN (CF)",
+            "lastLSeason": 2025,
+            "lastT": "2022 BOS over MIA (CF)",
+            "lastTSeason": 2022
+          },
+          "4": {
+            "won": 34,
+            "total": 41,
+            "lastL": "2023 DEN over MIA (F)",
+            "lastLSeason": 2023,
+            "lastT": "2021 MIL over PHX (F)",
+            "lastTSeason": 2021
+          }
+        }
       },
-      "2": {
-        "won": 44,
-        "total": 59,
-        "lastL": "2025 OKC over DEN (2)",
-        "lastLSeason": 2025,
-        "lastT": "2024 MIN over DEN (2)",
-        "lastTSeason": 2024
+      "away": {
+        "byRound": {
+          "0": {
+            "won": 0,
+            "total": 0,
+            "lastL": null,
+            "lastLSeason": 0,
+            "lastT": null,
+            "lastTSeason": 0
+          },
+          "1": {
+            "won": 28,
+            "total": 47,
+            "lastL": "2025 MIN over LAL (1)",
+            "lastLSeason": 2025,
+            "lastT": "2025 DEN over LAC (1)",
+            "lastTSeason": 2025
+          },
+          "2": {
+            "won": 31,
+            "total": 51,
+            "lastL": "2025 NYK over BOS (2)",
+            "lastLSeason": 2025,
+            "lastT": "2025 OKC over DEN (2)",
+            "lastTSeason": 2025
+          },
+          "3": {
+            "won": 24,
+            "total": 33,
+            "lastL": "2025 IND over NYK (CF)",
+            "lastLSeason": 2025,
+            "lastT": "2016 GSW over OKC (CF)",
+            "lastTSeason": 2016
+          },
+          "4": {
+            "won": 10,
+            "total": 17,
+            "lastL": "2012 MIA over OKC (F)",
+            "lastLSeason": 2012,
+            "lastT": "2025 OKC over IND (F)",
+            "lastTSeason": 2025
+          }
+        }
+      }
+    },
+    "2-2": {
+      "tied": true,
+      "byRound": {
+        "0": {
+          "won": 1,
+          "total": 1,
+          "lastL": "1997 CHI over UTA",
+          "lastLSeason": 1997,
+          "lastT": null,
+          "lastTSeason": 0
+        },
+        "1": {
+          "won": 46,
+          "total": 56,
+          "lastL": "2025 DEN over LAC (1)",
+          "lastLSeason": 2025,
+          "lastT": "2024 DAL over LAC (1)",
+          "lastTSeason": 2024
+        },
+        "2": {
+          "won": 72,
+          "total": 92,
+          "lastL": "2025 OKC over DEN (2)",
+          "lastLSeason": 2025,
+          "lastT": "2024 MIN over DEN (2)",
+          "lastTSeason": 2024
+        },
+        "3": {
+          "won": 34,
+          "total": 49,
+          "lastL": "2021 MIL over ATL (CF)",
+          "lastLSeason": 2021,
+          "lastT": "2022 BOS over MIA (CF)",
+          "lastTSeason": 2022
+        },
+        "4": {
+          "won": 22,
+          "total": 31,
+          "lastL": "2025 OKC over IND (F)",
+          "lastLSeason": 2025,
+          "lastT": "2021 MIL over PHX (F)",
+          "lastTSeason": 2021
+        }
+      }
+    },
+    "3-0": {
+      "tied": false,
+      "home": {
+        "byRound": {
+          "0": {
+            "won": 0,
+            "total": 0,
+            "lastL": null,
+            "lastLSeason": 0,
+            "lastT": null,
+            "lastTSeason": 0
+          },
+          "1": {
+            "won": 54,
+            "total": 54,
+            "lastL": "2025 OKC over MEM (1)",
+            "lastLSeason": 2025,
+            "lastT": null,
+            "lastTSeason": 0
+          },
+          "2": {
+            "won": 35,
+            "total": 35,
+            "lastL": "2021 PHX over DEN (2)",
+            "lastLSeason": 2021,
+            "lastT": null,
+            "lastTSeason": 0
+          },
+          "3": {
+            "won": 24,
+            "total": 24,
+            "lastL": "2024 BOS over IND (CF)",
+            "lastLSeason": 2024,
+            "lastT": null,
+            "lastTSeason": 0
+          },
+          "4": {
+            "won": 11,
+            "total": 11,
+            "lastL": "2024 BOS over DAL (F)",
+            "lastLSeason": 2024,
+            "lastT": null,
+            "lastTSeason": 0
+          }
+        }
       },
-      "3": {
-        "won": 23,
-        "total": 34,
-        "lastL": "2016 GSW over OKC (CF)",
-        "lastLSeason": 2016,
-        "lastT": "2023 MIA over BOS (CF)",
-        "lastTSeason": 2023
+      "away": {
+        "byRound": {
+          "0": {
+            "won": 0,
+            "total": 0,
+            "lastL": null,
+            "lastLSeason": 0,
+            "lastT": null,
+            "lastTSeason": 0
+          },
+          "1": {
+            "won": 3,
+            "total": 3,
+            "lastL": "2020 MIA over IND (1)",
+            "lastLSeason": 2020,
+            "lastT": null,
+            "lastTSeason": 0
+          },
+          "2": {
+            "won": 8,
+            "total": 8,
+            "lastL": "2020 MIA over MIL (2)",
+            "lastLSeason": 2020,
+            "lastT": null,
+            "lastTSeason": 0
+          },
+          "3": {
+            "won": 8,
+            "total": 8,
+            "lastL": "2024 DAL over MIN (CF)",
+            "lastLSeason": 2024,
+            "lastT": null,
+            "lastTSeason": 0
+          },
+          "4": {
+            "won": 2,
+            "total": 2,
+            "lastL": "1995 HOU over ORL (F)",
+            "lastLSeason": 1995,
+            "lastT": null,
+            "lastTSeason": 0
+          }
+        }
+      }
+    },
+    "3-1": {
+      "tied": false,
+      "home": {
+        "byRound": {
+          "0": {
+            "won": 1,
+            "total": 1,
+            "lastL": "1999 SAS over NYK",
+            "lastLSeason": 1999,
+            "lastT": null,
+            "lastTSeason": 0
+          },
+          "1": {
+            "won": 62,
+            "total": 62,
+            "lastL": "2025 IND over MIL (1)",
+            "lastLSeason": 2025,
+            "lastT": null,
+            "lastTSeason": 0
+          },
+          "2": {
+            "won": 63,
+            "total": 65,
+            "lastL": "2025 MIN over GSW (2)",
+            "lastLSeason": 2025,
+            "lastT": "2020 DEN over LAC (2)",
+            "lastTSeason": 2020
+          },
+          "3": {
+            "won": 32,
+            "total": 33,
+            "lastL": "2025 OKC over MIN (CF)",
+            "lastLSeason": 2025,
+            "lastT": "1968 BOS over PHI (CF)",
+            "lastTSeason": 1968
+          },
+          "4": {
+            "won": 23,
+            "total": 24,
+            "lastL": "2024 BOS over DAL (F)",
+            "lastLSeason": 2024,
+            "lastT": "2016 CLE over GSW (F)",
+            "lastTSeason": 2016
+          }
+        }
       },
-      "4": {
-        "won": 16,
-        "total": 20,
-        "lastL": "2025 OKC over IND (F)",
-        "lastLSeason": 2025,
-        "lastT": "2016 CLE over GSW (F)",
-        "lastTSeason": 2016
+      "away": {
+        "byRound": {
+          "0": {
+            "won": 0,
+            "total": 0,
+            "lastL": null,
+            "lastLSeason": 0,
+            "lastT": null,
+            "lastTSeason": 0
+          },
+          "1": {
+            "won": 25,
+            "total": 28,
+            "lastL": "2025 MIN over LAL (1)",
+            "lastLSeason": 2025,
+            "lastT": "2020 DEN over UTA (1)",
+            "lastTSeason": 2020
+          },
+          "2": {
+            "won": 27,
+            "total": 29,
+            "lastL": "2025 NYK over BOS (2)",
+            "lastLSeason": 2025,
+            "lastT": "2015 HOU over LAC (2)",
+            "lastTSeason": 2015
+          },
+          "3": {
+            "won": 24,
+            "total": 27,
+            "lastL": "2025 IND over NYK (CF)",
+            "lastLSeason": 2025,
+            "lastT": "2016 GSW over OKC (CF)",
+            "lastTSeason": 2016
+          },
+          "4": {
+            "won": 7,
+            "total": 7,
+            "lastL": "2012 MIA over OKC (F)",
+            "lastLSeason": 2012,
+            "lastT": null,
+            "lastTSeason": 0
+          }
+        }
+      }
+    },
+    "3-2": {
+      "tied": false,
+      "home": {
+        "byRound": {
+          "0": {
+            "won": 1,
+            "total": 1,
+            "lastL": "1997 CHI over UTA",
+            "lastLSeason": 1997,
+            "lastT": null,
+            "lastTSeason": 0
+          },
+          "1": {
+            "won": 52,
+            "total": 54,
+            "lastL": "2025 DEN over LAC (1)",
+            "lastLSeason": 2025,
+            "lastT": "2014 BKN over TOR (1)",
+            "lastTSeason": 2014
+          },
+          "2": {
+            "won": 77,
+            "total": 86,
+            "lastL": "2025 OKC over DEN (2)",
+            "lastLSeason": 2025,
+            "lastT": "2024 MIN over DEN (2)",
+            "lastTSeason": 2024
+          },
+          "3": {
+            "won": 37,
+            "total": 44,
+            "lastL": "2021 PHX over LAC (CF)",
+            "lastLSeason": 2021,
+            "lastT": "2018 GSW over HOU (CF)",
+            "lastTSeason": 2018
+          },
+          "4": {
+            "won": 26,
+            "total": 29,
+            "lastL": "2025 OKC over IND (F)",
+            "lastLSeason": 2025,
+            "lastT": "2016 CLE over GSW (F)",
+            "lastTSeason": 2016
+          }
+        }
+      },
+      "away": {
+        "byRound": {
+          "0": {
+            "won": 0,
+            "total": 0,
+            "lastL": null,
+            "lastLSeason": 0,
+            "lastT": null,
+            "lastTSeason": 0
+          },
+          "1": {
+            "won": 27,
+            "total": 36,
+            "lastL": "2025 GSW over HOU (1)",
+            "lastLSeason": 2025,
+            "lastT": "2021 LAC over DAL (1)",
+            "lastTSeason": 2021
+          },
+          "2": {
+            "won": 31,
+            "total": 39,
+            "lastL": "2025 NYK over BOS (2)",
+            "lastLSeason": 2025,
+            "lastT": "2023 BOS over PHI (2)",
+            "lastTSeason": 2023
+          },
+          "3": {
+            "won": 24,
+            "total": 33,
+            "lastL": "2025 IND over NYK (CF)",
+            "lastLSeason": 2025,
+            "lastT": "2016 GSW over OKC (CF)",
+            "lastTSeason": 2016
+          },
+          "4": {
+            "won": 10,
+            "total": 16,
+            "lastL": "2021 MIL over PHX (F)",
+            "lastLSeason": 2021,
+            "lastT": "2013 MIA over SAS (F)",
+            "lastTSeason": 2013
+          }
+        }
+      }
+    },
+    "3-3": {
+      "tied": true,
+      "byRound": {
+        "0": {
+          "won": 0,
+          "total": 0,
+          "lastL": null,
+          "lastLSeason": 0,
+          "lastT": null,
+          "lastTSeason": 0
+        },
+        "1": {
+          "won": 25,
+          "total": 33,
+          "lastL": "2025 DEN over LAC (1)",
+          "lastLSeason": 2025,
+          "lastT": "2025 GSW over HOU (1)",
+          "lastTSeason": 2025
+        },
+        "2": {
+          "won": 44,
+          "total": 59,
+          "lastL": "2025 OKC over DEN (2)",
+          "lastLSeason": 2025,
+          "lastT": "2024 MIN over DEN (2)",
+          "lastTSeason": 2024
+        },
+        "3": {
+          "won": 23,
+          "total": 34,
+          "lastL": "2016 GSW over OKC (CF)",
+          "lastLSeason": 2016,
+          "lastT": "2023 MIA over BOS (CF)",
+          "lastTSeason": 2023
+        },
+        "4": {
+          "won": 16,
+          "total": 20,
+          "lastL": "2025 OKC over IND (F)",
+          "lastLSeason": 2025,
+          "lastT": "2016 CLE over GSW (F)",
+          "lastTSeason": 2016
+        }
       }
     }
   }
 };
 
-const TABLE_ROWS = [
+// ---- No-seeding (combined) rows ----
+const TABLE_ROWS_COMBINED = [
+  { key:'0-0', label:'0-0 (Start)'      },
+  { key:'1-0', label:'Leader leads 1-0' },
+  { key:'1-1', label:'Tied 1-1'         },
+  { key:'2-0', label:'Leader leads 2-0' },
+  { key:'2-1', label:'Leader leads 2-1' },
+  { key:'2-2', label:'Tied 2-2'         },
+  { key:'3-0', label:'Leader leads 3-0' },
+  { key:'3-1', label:'Leader leads 3-1' },
+  { key:'3-2', label:'Leader leads 3-2' },
+  { key:'3-3', label:'Tied 3-3'         },
+];
+
+// ---- By-seeding rows ----
+const TABLE_ROWS_SEEDED = [
   { key:'0-0', label:'0-0 (Start)',           sub:null   },
   { key:'1-0', label:'Higher seed leads 1-0', sub:'home' },
   { key:'1-0', label:'Lower seed leads 0-1',  sub:'away' },
@@ -886,10 +1395,88 @@ const TABLE_ROWS = [
 
 let selectedRounds = new Set([1, 2, 3, 4]);
 
-// ---- Round-filtered stat helpers ----
+// ---- Combined helpers ----
+
+function getCombinedStats(key) {
+  const d = DATA.combined[key];
+  const byRound = d.byRound;
+  let won = 0, total = 0;
+  let lastL = null, lastLSeason = 0;
+  let lastT = null, lastTSeason = 0;
+  for (const rnd of [0, ...selectedRounds]) {
+    const r = byRound[String(rnd)];
+    if (!r || r.total === 0) continue;
+    won   += r.won;
+    total += r.total;
+    if (r.lastL && r.lastLSeason > lastLSeason) { lastL = r.lastL; lastLSeason = r.lastLSeason; }
+    if (r.lastT && r.lastTSeason > lastTSeason) { lastT = r.lastT; lastTSeason = r.lastTSeason; }
+  }
+  const rawPct = total > 0 ? +(won / total * 100).toFixed(1) : null;
+  const lPct   = d.tied ? 50.0 : rawPct;
+  return { lPct, rawPct, total, lastL, lastT };
+}
+
+function getCombinedSwings(key) {
+  const { lPct } = getCombinedStats(key);
+  if (lPct === null) return { swL: null, swT: null };
+  const [a, b] = key.split('-').map(Number);
+  const tied = DATA.combined[key].tied;
+  let newL, newT;
+  if (tied) {
+    if (a + 1 === 4) { newL = 100; newT = 0; }
+    else {
+      const { lPct: np } = getCombinedStats(`${a+1}-${a}`);
+      newL = np;
+      newT = np !== null ? +(100 - np).toFixed(1) : null;
+    }
+  } else {
+    newL = (a + 1 === 4) ? 100 : getCombinedStats(`${a+1}-${b}`).lPct;
+    const b1 = b + 1;
+    if      (b1 === 4) newT = 0;
+    else if (b1 === a) newT = 50;
+    else               newT = getCombinedStats(`${a}-${b1}`).lPct;
+  }
+  return {
+    swL: (newL !== null && lPct !== null) ? +(newL - lPct).toFixed(1) : null,
+    swT: (newT !== null && lPct !== null) ? +(newT - lPct).toFixed(1) : null,
+  };
+}
+
+function buildTableCombined() {
+  const tbody = el('tBodyCombined');
+  tbody.innerHTML = '';
+  TABLE_ROWS_COMBINED.forEach(({ key, label }) => {
+    const { lPct, rawPct, total, lastL, lastT } = getCombinedStats(key);
+    const { swL, swT } = getCombinedSwings(key);
+    const tied    = DATA.combined[key].tied;
+    const tPct    = lPct !== null ? +(100 - lPct).toFixed(1) : null;
+    // trSwing: show the trailer's gain (negate leader's loss) so "If Trailer Wins" is always positive.
+    const trSwing = swT !== null ? +(-swT).toFixed(1) : null;
+    const slCls = swL    === null ? 'c-n' : (swL  > 0 ? 'c-l' : swL  < 0 ? 'c-t' : 'c-n');
+    const stCls = trSwing === null ? 'c-n' : 'c-l';
+
+    let lPctDisp = fmt(lPct);
+    if (tied && rawPct !== null) lPctDisp += ` <span class="c-n">(home: ${rawPct.toFixed(1)}%)</span>`;
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${label}</td>
+      <td class="c-n">${total}</td>
+      <td style="color:${pctColor(lPct)}">${lPctDisp}</td>
+      <td style="color:${pctColor(tPct)}">${tPct !== null ? tPct.toFixed(1) + '%' : 'N/A'}</td>
+      <td class="${slCls}">${fmtSw(swL)}</td>
+      <td class="${stCls}">${fmtSw(trSwing)}</td>
+      <td>${lastL || 'N/A'}</td>
+      <td>${lastT || 'N/A'}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+// ---- Seeded helpers ----
 
 function getStateStats(key, sub) {
-  const d = DATA[key];
+  const d = DATA.seeded[key];
   const byRound = sub ? d[sub].byRound : d.byRound;
   let won = 0, total = 0;
   let lastL = null, lastLSeason = 0;
@@ -909,15 +1496,11 @@ function getStateStats(key, sub) {
 function getSwings(key, sub) {
   const { lPct } = getStateStats(key, sub);
   if (lPct === null) return { swL: null, swT: null };
-
   const [a, b] = key.split('-').map(Number);
-  const tied = DATA[key].tied;
+  const tied = DATA.seeded[key].tied;
   let newL, newT;
-
   if (tied) {
-    // Home wins -> home leads (a+1)-a
     newL = (a + 1 === 4) ? 100 : getStateStats(`${a+1}-${a}`, 'home').lPct;
-    // Away wins -> away leads (a+1)-a; from home perspective: 100 - awayLeaderPct
     if (a + 1 === 4) {
       newT = 0;
     } else {
@@ -925,48 +1508,45 @@ function getSwings(key, sub) {
       newT = np !== null ? +(100 - np).toFixed(1) : null;
     }
   } else {
-    // Leader wins -> same sub, incremented
     newL = (a + 1 === 4) ? 100 : getStateStats(`${a+1}-${b}`, sub).lPct;
     const b1 = b + 1;
     if (b1 === 4) {
       newT = 0;
     } else if (b1 === a) {
-      // Newly tied: use historical tied-state win% for the home team
       const tiedPct = getStateStats(`${a}-${b1}`, null).lPct;
       newT = sub === 'home' ? tiedPct : (tiedPct !== null ? +(100 - tiedPct).toFixed(1) : null);
     } else {
-      // Leader still leading, same sub
       newT = getStateStats(`${a}-${b1}`, sub).lPct;
     }
   }
-
   return {
     swL: (newL !== null && lPct !== null) ? +(newL - lPct).toFixed(1) : null,
     swT: (newT !== null && lPct !== null) ? +(newT - lPct).toFixed(1) : null,
   };
 }
 
-// ---- Filter change handler ----
-
-function onRoundChange() {
-  selectedRounds = new Set();
-  document.querySelectorAll('.round-cb:checked').forEach(cb => {
-    selectedRounds.add(Number(cb.value));
-  });
-  buildTable();
-}
-
-function buildTable() {
+function buildTableSeeded() {
   const tbody = el('tBody');
   tbody.innerHTML = '';
-  TABLE_ROWS.forEach(({ key, label, sub }) => {
+  TABLE_ROWS_SEEDED.forEach(({ key, label, sub }) => {
     const { lPct, total, lastL, lastT } = getStateStats(key, sub);
     const { swL, swT } = getSwings(key, sub);
-    const tPct   = lPct !== null ? +(100 - lPct).toFixed(1) : null;
-    const slCls  = swL === null ? 'c-n' : (swL > 0 ? 'c-l' : swL < 0 ? 'c-t' : 'c-n');
-    const stCls  = swT === null ? 'c-n' : (swT > 0 ? 'c-l' : swT < 0 ? 'c-t' : 'c-n');
     const isAway = sub === 'away';
-    const badge  = sub
+
+    const hiPct     = isAway ? (lPct !== null ? +(100 - lPct).toFixed(1) : null) : lPct;
+    const loPct     = isAway ? lPct : (lPct !== null ? +(100 - lPct).toFixed(1) : null);
+    const hiSwIfHi  = isAway ? (swT !== null ? +(-swT).toFixed(1) : null) : swL;
+    // Show the lower seed's gain (= negate the higher seed's change) so the sign always
+    // matches the named team: "If Lower Seed Wins" is positive when the lower seed wins.
+    const hiSwIfLo  = isAway ? (swL !== null ? +(-swL).toFixed(1) : null) : swT;
+    const loSwIfLo  = hiSwIfLo !== null ? +(-hiSwIfLo).toFixed(1) : null;
+    const lastHiWin = isAway ? lastT : lastL;
+    const lastLoWin = isAway ? lastL : lastT;
+
+    const slCls = hiSwIfHi === null ? 'c-n' : (hiSwIfHi > 0 ? 'c-l' : hiSwIfHi < 0 ? 'c-t' : 'c-n');
+    const stCls = loSwIfLo === null ? 'c-n' : 'c-l';
+
+    const badge = sub
       ? `<span class="seed-badge ${isAway ? 'badge-away' : 'badge-home'}">${isAway ? 'LO' : 'HI'}</span>`
       : '';
     const tr = document.createElement('tr');
@@ -974,22 +1554,45 @@ function buildTable() {
     tr.innerHTML = `
       <td>${badge}${label}</td>
       <td class="c-n">${total}</td>
-      <td class="c-l">${fmt(lPct)}</td>
-      <td class="c-t">${tPct !== null ? tPct.toFixed(1) + '%' : 'N/A'}</td>
-      <td class="${slCls}">${fmtSw(swL)}</td>
-      <td class="${stCls}">${fmtSw(swT)}</td>
-      <td>${lastL || 'N/A'}</td>
-      <td>${lastT || 'N/A'}</td>
+      <td style="color:${pctColor(hiPct)}">${fmt(hiPct)}</td>
+      <td style="color:${pctColor(loPct)}">${fmt(loPct)}</td>
+      <td class="${slCls}">${fmtSw(hiSwIfHi)}</td>
+      <td class="${stCls}">${fmtSw(loSwIfLo)}</td>
+      <td>${lastHiWin || 'N/A'}</td>
+      <td>${lastLoWin || 'N/A'}</td>
     `;
     tbody.appendChild(tr);
   });
 }
 
+// ---- Tab switching ----
+
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + name));
+}
+
+// ---- Round filter ----
+
+function onRoundChange() {
+  selectedRounds = new Set();
+  document.querySelectorAll('.round-cb:checked').forEach(cb => {
+    selectedRounds.add(Number(cb.value));
+  });
+  buildTableCombined();
+  buildTableSeeded();
+}
+
 function el(id)   { return document.getElementById(id); }
 function fmt(v)   { return v == null ? 'N/A' : v.toFixed(1) + '%'; }
 function fmtSw(v) { return v == null ? 'N/A' : (v >= 0 ? '+' : '') + v.toFixed(1) + '%'; }
+function pctColor(v) {
+  if (v == null) return '#8888b0';
+  return `hsl(${(v * 1.2).toFixed(1)}, 72%, 52%)`;
+}
 
-buildTable();
+buildTableCombined();
+buildTableSeeded();
 </script>
 </body>
 </html>
